@@ -5,11 +5,12 @@ addEventListener('fetch', event => {
 async function handleRequest(request, env) {
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
     };
 
-    // التعامل مع طلبات "Preflight" من المتصفح
+    // التعامل مع طلبات "Preflight"
     if (request.method === 'OPTIONS') {
         return new Response(null, {
             status: 204,
@@ -19,14 +20,26 @@ async function handleRequest(request, env) {
 
     // رفض الطلبات التي ليست من نوع POST
     if (request.method !== 'POST') {
-        return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
+        return new Response('Method Not Allowed', { 
+            status: 405, 
+            headers: corsHeaders 
+        });
+    }
+
+    // التحقق من نوع المحتوى
+    const contentType = request.headers.get('Content-Type');
+    if (!contentType || !contentType.includes('application/json')) {
+        return new Response('Unsupported Media Type', { 
+            status: 415, 
+            headers: corsHeaders 
+        });
     }
 
     try {
         const orderDetails = await request.json();
 
         const BOT_TOKEN = env.BOT_TOKEN;
-        const CHAT_ID = env.CHAT_ID;
+        const CHAT_ID = env.CAT_ID;
 
         // بناء رسالة تيليجرام
         let messageText = '<b>✅ طلب جديد من السوبر ماركت:</b>\n\n';
@@ -44,7 +57,10 @@ async function handleRequest(request, env) {
         
         const telegramResponse = await fetch(telegramUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'User-Agent': 'Cloudflare-Worker'
+            },
             body: JSON.stringify({
                 chat_id: CHAT_ID,
                 text: messageText,
@@ -53,24 +69,32 @@ async function handleRequest(request, env) {
         });
 
         if (!telegramResponse.ok) {
-            const errorData = await telegramResponse.json();
-            throw new Error(`Failed to send message: ${errorData.description}`);
+            const errorData = await telegramResponse.text();
+            console.error('Telegram API Error:', errorData);
+            throw new Error(`Failed to send message: ${telegramResponse.status}`);
         }
 
-        return new Response(JSON.stringify({ success: true, message: 'Order sent to Telegram' }), {
+        return new Response(JSON.stringify({ 
+            success: true, 
+            message: 'Order sent to Telegram successfully' 
+        }), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
-                ...corsHeaders // إضافة ترويسات CORS للرد الناجح
+                ...corsHeaders
             },
         });
 
     } catch (error) {
-        return new Response(JSON.stringify({ success: false, error: error.message }), {
+        console.error('Error:', error);
+        return new Response(JSON.stringify({ 
+            success: false, 
+            error: error.message 
+        }), {
             status: 500,
             headers: {
                 'Content-Type': 'application/json',
-                ...corsHeaders // إضافة ترويسات CORS لرد الخطأ
+                ...corsHeaders
             },
         });
     }
