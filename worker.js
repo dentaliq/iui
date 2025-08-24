@@ -39,7 +39,7 @@ async function handleRequest(request, env) {
         const orderDetails = await request.json();
 
         const BOT_TOKEN = env.BOT_TOKEN;
-        const CHAT_ID = env.CAT_ID;
+        const CHAT_ID = env.CHAT_ID;
 
         // بناء رسالة تيليجرام
         let messageText = '<b>✅ طلب جديد من السوبر ماركت:</b>\n\n';
