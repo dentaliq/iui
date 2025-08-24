@@ -1,1 +1,8 @@
 
+name = "iui"
+main = "worker.js"
+compatibility_date = "2025-08-24"
+
+[vars]
+BOT_TOKEN = "8214786867:AAHsLBghSsF2le7Tx_rsLQd6GaXFWVgs_GA"
+CHAT_ID = "7836619198"
